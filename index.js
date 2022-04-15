@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-//const MongoClient = require('mongodb').MongoClient;
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 const { initializeApp } = require('firebase-admin/app');
@@ -31,7 +30,6 @@ app.get('/', (req, res) => {
     res.send("Hello from db it's working")
 })
 
-// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 client.connect(err => {
   const orderedServicesCollection = client.db("projectDatabase").collection("orderedServices");
@@ -43,9 +41,7 @@ client.connect(err => {
     orderedServicesCollection.insertOne(orderedServices)
     .then(result => {
         res.send(result.insertedCount > 0)
-    })
-    // console.log(orderedServices);
-    
+    })    
   })
 
   app.post('/review', (req, res) => {
@@ -54,8 +50,6 @@ client.connect(err => {
     .then(result => {
         res.send(result.insertedCount > 0)
     })
-    // console.log(orderedServices);
-    
   })
 
   app.post('/addNewAdmin', (req, res) => {
@@ -64,8 +58,6 @@ client.connect(err => {
     .then(result => {
         res.send(result.insertedCount > 0)
     })
-    // console.log(orderedServices);
-    
   })
 
   app.post('/isAdmin', (req, res) => {
@@ -82,36 +74,6 @@ client.connect(err => {
       .toArray((err, documents) => {
          res.send(documents);
     })
-    // const bearer = req.headers.authorization;
-    //console.log(bearer);
-    // if(bearer && bearer.startsWith('Bearer ')){
-    //   const idToken = bearer.split(' ')[1];
-      //console.log(idToken);
-  //     admin.auth()
-  //     .verifyIdToken(idToken)
-  //     .then((decodedToken) => {
-  //       const tokenEmail = decodedToken.email;
-  //       if(tokenEmail == req.query.email){
-  //         orderedServicesCollection.find({email: req.query.email})
-  //         .toArray((err,documents) => {
-  //           res.send(documents);
-  //         })
-  //       }
-  //       else{
-  //         res.status(401).send('unauthorized access')
-  //       }
-  //     })
-  //     .catch((error) => {
-  //       res.status(401).send('unauthorized access')
-  //     });
-  //   }
-  //   else{
-  //     res.status(401).send('unauthorized access')
-  //   }
-     
-
-    
-   
   })
 
   app.get('/allOrders', (req, res) => {
