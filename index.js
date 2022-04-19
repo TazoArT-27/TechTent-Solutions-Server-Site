@@ -1,8 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const ObjectId = require('mongodb').ObjectID;
+const MongoClient = require('mongodb').MongoClient;
 require('dotenv').config();
 const { initializeApp } = require('firebase-admin/app');
+const fileUpload = require('express-fileupload');
+const fs = require('fs-extra');
+
+
+
 
 
 const app = express();
@@ -10,6 +16,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('servicePhoto'));
+app.use(fileUpload());
 
 
 var admin = require("firebase-admin");
@@ -30,11 +38,13 @@ app.get('/', (req, res) => {
     res.send("Hello from db it's working")
 })
 
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
   const orderedServicesCollection = client.db("projectDatabase").collection("orderedServices");
   const reviewCollection = client.db("projectDatabase").collection("customerReview");
   const adminCollection = client.db("projectDatabase").collection("addNewAdmin");
+  const serviceCollection = client.db("projectDatabase").collection("addNewService");
+
   
   app.post('/addOrderedServices', (req, res) => {
     const orderedServices = req.body;
@@ -68,8 +78,37 @@ client.connect(err => {
     })
   })
 
+  app.post('/addServices', (req, res) => {
+    const file = req.files.file;
+    const name = req.body.name;
+    const description = req.body.description;
+    const filePath = `${__dirname}/servicePhoto/${file.name}`;
+    file.mv( filePath, err => {
+      if (err) {
+        console.log(err);
+        res.status(500).send({msg: 'failed to upload file'})
+      }
+      const newImg = fs.readFileSync(filePath);
+      const encImg = newImg.toString('base64');
+      var image = {
+        contentType: req.files.file.mimetype,
+        size: req.files.file.size,
+        img: Buffer.from(encImg, 'base64')
+      };
+      
+      serviceCollection.insertOne({name, description, image})
+      .then(result => {
+        fs.remove(filePath, error => {
+          if (error){
+            res.status(500).send({msg: 'Failed to upload image'});
+          }
+          res.send(result.insertedCount > 0);
+        })
+      })
+    })
+  })
+
   app.get('/orders', (req, res) => {
-    console.log(req.query.email)
       orderedServicesCollection.find({email: req.query.email})
       .toArray((err, documents) => {
          res.send(documents);
@@ -82,6 +121,27 @@ client.connect(err => {
        res.send(documents);
   })
   })
+
+  app.get('/reviewPage', (req, res) => {
+    reviewCollection.find({})
+        .toArray((err, documents) => {
+            res.send(documents);
+     })
+  });
+
+  app.get('/servicePage', (req, res) => {
+    serviceCollection.find({})
+        .toArray((err, documents) => {
+            res.send(documents);
+     })
+  });
+
+  app.delete('/deleteOrder/:id', (req, res) => {
+    const orderId = req.params.id;
+    orderedServicesCollection.deleteOne({_id: ObjectId(orderId)})
+    .then(res => {
+    })
+})
 });
 
 app.listen(process.env.PORT || port, ()=> {console.log("listening to port 5000")});
